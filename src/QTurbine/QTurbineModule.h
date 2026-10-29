@@ -4,8 +4,8 @@
 
     This program is licensed under the Academic Public License
     (APL) v1.0; You can use, redistribute and/or modify it in
-    non-commercial academic environments under the terms of the
-    APL as published by the QBlade project; See the file 'LICENSE'
+    non-commercial academic environments under the terms of
+    the APL as published by the QBlade project; See the file 'LICENSE'
     for details; Commercial use requires a commercial license
     (contact info@qblade.org).
 
@@ -30,6 +30,7 @@ class QTurbineDock;
 class QTurbineToolBar;
 class QTurbineMenu;
 class QTurbine;
+class SensorCsvDock;
 
 class QTurbineModule : public ModuleBase, public DualModule
 {
@@ -67,6 +68,7 @@ public:
     QTurbineToolBar *m_ToolBar;
     QDockWidget *m_GraphDock;
     QTurbineMenu *m_Menu;
+    SensorCsvDock *m_SensorDock;
 
 
 private:
@@ -87,6 +89,9 @@ public slots:
     void forceReRender();
     void OnHideWidgets();
     void OnCenterScene();
+
+    void OnImportSensorCsv();
+    void OnClearSensorCsv();
 
 };
 
