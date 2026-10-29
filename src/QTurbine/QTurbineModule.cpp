@@ -4,8 +4,8 @@
 
     This program is licensed under the Academic Public License
     (APL) v1.0; You can use, redistribute and/or modify it in
-    non-commercial academic environments under the terms of the
-    APL as published by the QBlade project; See the file 'LICENSE'
+    non-commercial academic environments under the terms of
+    the APL as published by the QBlade project; See the file 'LICENSE'
     for details; Commercial use requires a commercial license
     (contact info@qblade.org).
 
@@ -35,8 +35,14 @@
 #include "QTurbine.h"
 #include "src/QBEM/Blade.h"
 #include "src/Globals.h"
+#include "src/QTurbine/SensorDataManager.h"
+#include "src/QTurbine/SensorCsvDock.h"
+#include "src/QTurbine/SensorBladeMarkers.h"
 
 #include "../MainFrame.h"
+
+#include <QFileDialog>
+#include <QMessageBox>
 
 QTurbineModule::QTurbineModule(QMainWindow *mainWindow, QToolBar *toolbar)
 {
@@ -59,6 +65,11 @@ QTurbineModule::QTurbineModule(QMainWindow *mainWindow, QToolBar *toolbar)
     m_GraphDock->setVisible(false);
     m_GraphDock->setObjectName("QTurbineGraphDock");
     mainWindow->addDockWidget(Qt::RightDockWidgetArea,m_GraphDock);
+
+    m_SensorDock = new SensorCsvDock(mainWindow);
+    m_SensorDock->setObjectName("SensorCsvDock");
+    m_SensorDock->setVisible(false);
+    mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_SensorDock);
 
     connect(&g_QTurbinePrototypeStore, SIGNAL(objectListChanged(bool)), this, SLOT(reloadAllGraphs()));
 
@@ -154,6 +165,8 @@ void QTurbineModule::drawGL () {
         turb->GlCallModelLists();
 
         turb->GlCallWakeLists();
+
+        GlDrawSensorMarkers(turb);
 
     }
 }
@@ -268,6 +281,30 @@ void QTurbineModule::UpdateView (){
     m_glWidget->update();
 }
 
+void QTurbineModule::OnImportSensorCsv()
+{
+    QString fileName = QFileDialog::getOpenFileName(g_mainFrame,
+                                                    tr("Import Sensor CSV File"),
+                                                    "",
+                                                    tr("Sensor CSV Files (*.csv *.txt);;All Files (*)"));
+    if (fileName.isEmpty()) return;
+
+    QString err;
+    SensorDataManager *mgr = SensorDataManager::instance();
+    if (!mgr->loadCsvFile(fileName, &err)) {
+        QMessageBox::warning(g_mainFrame, tr("Sensor CSV Import"), err);
+        return;
+    }
+    m_SensorDock->show();
+    forceReRender();
+}
+
+void QTurbineModule::OnClearSensorCsv()
+{
+    SensorDataManager::instance()->clearAll();
+    forceReRender();
+}
+
 void QTurbineModule::OnCenterScene() {
     if(!m_ToolBar->m_turbineBox->currentObject()) return;
     if (g_mainFrame->getCurrentModule() != this) return;
@@ -279,8 +316,8 @@ void QTurbineModule::OnCenterScene() {
             m_glWidget->setSceneRadius(float(m_ToolBar->m_turbineBox->currentObject()->m_StrModel->subStructureSize*5));
 
     Vec3 center;
-   /* if (m_ToolBar->m_turbineBox->currentObject()->m_savedHubCoordsFixed.size()) center = m_ToolBar->m_turbineBox->currentObject()->m_savedHubCoordsFixed.at(0).Origin;
-    else */center.Set(0,0,0);
+    center.Set(0,0,0);
+
     m_glWidget->setSceneCenter(qglviewer::Vec(center.x,center.y,center.z));
 
     m_glWidget->showEntireScene();
