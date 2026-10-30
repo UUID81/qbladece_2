@@ -83,65 +83,6 @@ patch('src/Graph/NewGraph.cpp', [(
     'if (std::isnan(double(m_drawingArea.height())) || std::isnan(double(m_drawingArea.width())) || std::isinf(double(m_drawingArea.height())) || std::isinf(double(m_drawingArea.width()))'
 )])
 
-# 8) VPML Math_Types.h: <tr1/cmath> was removed after VS2013; MSVC has these in <cmath>
-patch('src/VPML/Math_Types.h', [('#include <tr1/cmath>', '#include <cmath>')])
-
-# 8b) VPML Math_Types.h: "#define SinglePrec;" -> trailing ';' in macro body is C2008 on MSVC
-patch('src/VPML/Math_Types.h', [('#define SinglePrec;', '#define SinglePrec')])
-
-# 8b2) VPML Math_Types.h: _Pragma inside macro body is unreliable on MSVC 14.29
-# (produces C2018 unknown char at use sites). Define OpenMPfor to nothing under _MSC_VER
-# (serial fallback, still correct); keep _Pragma on GCC/Clang.
-mt = 'src/VPML/Math_Types.h'
-s = read(mt)
-if '#define OpenMPfor _Pragma("omp parallel for")' in s and '_MSC_VER' not in s:
-    s = s.replace('#define OpenMPfor _Pragma("omp parallel for")',
-                  '#ifdef _MSC_VER\n#define OpenMPfor\n#else\n#define OpenMPfor _Pragma("omp parallel for")\n#endif', 1)
-    write(mt, s); print('patched', mt)
-else:
-    print('deja ok ', mt)
-
-# 8c) VPML ML_Euler.h: string literals assigned to 'char *BCtype' -> C2440 with /Zc:strictStrings (default in recent MSVC)
-patch('src/VPML/ML_Euler.h', [('    char *BCtype;', '    const char *BCtype;')])
-
-# 8d) VPML Box_Tree.h uses include guard GRID_H which collides with other headers -> C1004 cascade; rename guard
-bt = 'src/VPML/Box_Tree.h'
-s = read(bt)
-if '#ifndef GRID_H' in s and '#ifndef VPML_BOX_TREE_H' not in s:
-    s = s.replace('#ifndef GRID_H\n#define GRID_H', '#ifndef VPML_BOX_TREE_H\n#define VPML_BOX_TREE_H', 1)
-    s = s.replace('#endif // GRID_H', '#endif // VPML_BOX_TREE_H', 1)
-    write(bt, s); print('patched', bt)
-else:
-    print('deja ok ', bt)
-
-# 8e) Octtree.h: base Tree_Node virtuals with empty body {} but non-void return -> C4716 on MSVC
-patch('src/VPML/Octtree.h', [
-    ('    virtual Cart_ID Get_CID(const Vector3 &Pos, const Real &H, const uint &Level=0) {}',
-     '    virtual Cart_ID Get_CID(const Vector3 &Pos, const Real &H, const uint &Level=0) { return Cart_ID(0,0,0); }'),
-    ('                                const Vector3 &Centre = Vector3(0,0,0)){}   // Initial Centre is zero',
-     '                                const Vector3 &Centre = Vector3(0,0,0)){ return Vector3(0,0,0); }   // Initial Centre is zero'),
-    ('    virtual Matrix Get_Corners(const TreeID &TID, const Real &H, const uint &Level = 0) {}  // Return box corners',
-     '    virtual Matrix Get_Corners(const TreeID &TID, const Real &H, const uint &Level = 0) { return Matrix(); }  // Return box corners'),
-])
-
-# 8f) QFEMModule.cpp: 2D VLA GLdouble x[(int)...size()][3] -> QVector<GLdouble> flat (MSVC C2131/C3863)
-qf = 'src/QFEMModule/QFEMModule.cpp'
-s = read(qf)
-if 'QVector<GLdouble> outerpoints(' not in s:
-    s = s.replace('GLdouble outerpoints[(int)OuterProfiles[0].size()][3];',
-                  'QVector<GLdouble> outerpoints((int)OuterProfiles[0].size()*3, 0.0);', -1)
-    s = s.replace('GLdouble innerpoints[(int)InnerProfiles[0].size()][3];',
-                  'QVector<GLdouble> innerpoints((int)InnerProfiles[0].size()*3, 0.0);', -1)
-    s = re.sub(r'outerpoints\[l\]\[(\d)\]', r'outerpoints[l*3+\1]', s)
-    s = re.sub(r'innerpoints\[l\]\[(\d)\]', r'innerpoints[l*3+\1]', s)
-    s = s.replace('gluTessVertex(tess, outerpoints[l], outerpoints[l]);',
-                  'gluTessVertex(tess, &outerpoints[l*3], &outerpoints[l*3]);')
-    s = s.replace('gluTessVertex(tess, innerpoints[l], innerpoints[l]);',
-                  'gluTessVertex(tess, &innerpoints[l*3], &innerpoints[l*3]);')
-    write(qf, s); print('patched', qf)
-else:
-    print('deja ok ', qf)
-
 # 8g) NewGraph.cpp: VLA QVector<QPointF> points[m_curves.size()] -> QVector<QVector<QPointF>> (MSVC C2131/C3863)
 patch('src/Graph/NewGraph.cpp', [(
     '\t\tQVector<QPointF> points[m_curves.size()];  // preparation of this array is of vital importance for performance',
@@ -183,6 +124,65 @@ for _root, _dirs, _fs in os.walk('src'):
             _tot += _qualify(os.path.join(_root, _f))
 print('chrono:: qualified total replacements:', _tot)
 
+# 8j) Debug.h: __PRETTY_FUNCTION__ is GCC/Clang-only; MSVC has __FUNCSIG__. Map it under _MSC_VER.
+dbg = 'src/VPML/Debug.h'
+s = read(dbg)
+if '__FUNCSIG__' not in s:
+    s = s.replace('#define LOG_FUNC_ENTRY      Log(__PRETTY_FUNCTION__)',
+                  '#ifdef _MSC_VER\n#define LOG_FUNC_ENTRY      Log(__FUNCSIG__)\n#else\n#define LOG_FUNC_ENTRY      Log(__PRETTY_FUNCTION__)\n#endif')
+    s = s.replace('#define LOG_FUNC(x)         Log(__PRETTY_FUNCTION__,x)',
+                  '#ifdef _MSC_VER\n#define LOG_FUNC(x)         Log(__FUNCSIG__,x)\n#else\n#define LOG_FUNC(x)         Log(__PRETTY_FUNCTION__,x)\n#endif')
+    write(dbg, s); print('patched', dbg)
+else:
+    print('deja ok ', dbg)
+
+# 8k) ML_Euler.h: non-void virtuals with empty body {} -> C4716 on MSVC. Add a default return.
+me = 'src/VPML/ML_Euler.h'
+s = read(me)
+_ret = {'uint': '0', 'int': '0', 'Real': '0', 'float': '0', 'double': '0', 'bool': 'false',
+        'Vector3': 'Vector3(0,0,0)', 'Matrix': 'Matrix()', 'MatrixRM': 'MatrixRM()', 'Matrix3': 'Matrix3()',
+        'Cart_ID': 'Cart_ID(0,0,0)'}
+_vpat = re.compile(r'(virtual\s+(uint|int|Real|float|double|bool|Vector3|Matrix|MatrixRM|Matrix3|Cart_ID)[^;{]*\([^)]*\))\s*\{\}')
+def _vsub(m):
+    ret = _ret[m.group(2)]
+    return m.group(1) + ' { return ' + ret + '; }'
+s2, nv = _vpat.subn(_vsub, s)
+if nv:
+    write(me, s2); print('patched', me, 'virtual returns:', nv)
+else:
+    print('deja ok ', me)
+
+# 8l) ML_Box.cpp: 3D VLA Real L[2|3][N_P][Ns] -> flat std::vector<Real> (MSVC C2131/C2148/C2036)
+mb = 'src/VPML/ML_Box.cpp'
+s = read(mb)
+if 'std::vector<Real> L(' not in s:
+    if '#include <vector>' not in s:
+        s = s.replace('#include "ML_Box.h"', '#include "ML_Box.h"\n#include <vector>\n#include <algorithm>', 1)
+    s = s.replace('    Real L[2][N_P][Ns]; // = {{{0}}};',
+                  '    std::vector<Real> L(2*N_P*Ns, 0.0);')
+    s = s.replace('    Real L[3][N_P][Ns];     // = {{{0}}};',
+                  '    std::vector<Real> L(3*N_P*Ns, 0.0);')
+    s = re.sub(r'L\[(\d)\]\[(\w+)\]\[(\w+)\]', r'L[((\1)*N_P + \2)*Ns + \3]', s)
+    s = re.sub(r'L\[(\d)\]\[(\w+)\]\)', r'&L[((\1)*N_P + \2)*Ns])', s)
+    write(mb, s); print('patched', mb)
+else:
+    print('deja ok ', mb)
+
+# 8m) Particle_Grid.cpp: 3D VLA bool VG[NX][NY][NZ] -> flat std::vector<char>
+pg = 'src/VPML/Particle_Grid.cpp'
+s = read(pg)
+if 'std::vector<char> VG(' not in s:
+    if '#include <vector>' not in s:
+        s = s.replace('#include "Particle_Grid.h"', '#include "Particle_Grid.h"\n#include <vector>\n#include <algorithm>', 1)
+    s = s.replace('    bool VG[NX][NY][NZ];',
+                  '    std::vector<char> VG(NX*NY*NZ, 0);')
+    s = s.replace('std::fill(VG[0][0], VG[0][0]+NX*NY*NZ, 0);',
+                  'std::fill(VG.begin(), VG.end(), 0);')
+    s = re.sub(r'VG\[(\w+)\]\[(\w+)\]\[(\w+)\]', r'VG[((\1)*NY + \2)*NZ + \3]', s)
+    write(pg, s); print('patched', pg)
+else:
+    print('deja ok ', pg)
+
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -208,16 +208,10 @@ print('TBEMData accessParameter return:', 'return QVariant();' in read('src/QBEM
 print('TBEMData startSimulation clean:', 'return QVariant();' not in re.search(r'void TBEMData::startSimulation\(\) \{\n(?:[^\n]*\n)*?\}', read('src/QBEM/TBEMData.cpp')).group(0))
 print('isnan(double(h)) counts:', {c: read(c).count('std::isnan(double(h))') for c in ['src/TwoDWidgetInterface.cpp','src/QBEM/BEM.cpp','src/PolarModule/PolarModule.cpp','src/FoilModule/FoilModule.cpp']})
 print('NewGraph double cast:', read('src/Graph/NewGraph.cpp').count('std::isnan(double(m_drawingArea.height()))'))
-print('VPML tr1/cmath replaced:', '<tr1/cmath>' not in read('src/VPML/Math_Types.h') and '#include <cmath>' in read('src/VPML/Math_Types.h'))
-print('SinglePrec macro fixed:', '#define SinglePrec;' not in read('src/VPML/Math_Types.h'))
-print('OpenMPfor MSVC-guarded:', '#ifdef _MSC_VER' in read('src/VPML/Math_Types.h'))
-print('Box_Tree.h line174 clean:', all(ord(c) < 128 for c in read('src/VPML/Box_Tree.h').splitlines()[173]))
-print('ML_Euler BCtype const:', 'const char *BCtype;' in read('src/VPML/ML_Euler.h'))
-print('Box_Tree guard renamed:', '#ifndef VPML_BOX_TREE_H' in read('src/VPML/Box_Tree.h') and '#ifndef GRID_H' not in read('src/VPML/Box_Tree.h'))
-print('Octtree C4716 fixed:', 'return Cart_ID(0,0,0); }' in read('src/VPML/Octtree.h') and 'return Matrix(); }' in read('src/VPML/Octtree.h'))
-print('QFEM VLA->QVector:', 'QVector<GLdouble> outerpoints(' in read('src/QFEMModule/QFEMModule.cpp') and 'outerpoints[(int)' not in read('src/QFEMModule/QFEMModule.cpp'))
 print('NewGraph VLA fixed:', 'QVector<QVector<QPointF> > points(m_curves.size());' in read('src/Graph/NewGraph.cpp'))
 print('interface renamed:', 'TwoDWidgetInterface* iface =' in read('src/Graph/GraphOptionsDialog.cpp'))
-print('Chrono ::chrono:: qualified:', '::chrono::ChArchiveOut' in read('include_headers/Chrono/chrono/core/ChMatrixEigenExtensions.h'))
-print('ChArchive.h qualified:', '::chrono::' in read('include_headers/Chrono/chrono/serialization/ChArchive.h'))
+print('PRETTY_FUNCTION mapped:', '__FUNCSIG__' in read('src/VPML/Debug.h'))
+print('ML_Euler virtual returns:', '{ return Matrix(); }' in read('src/VPML/ML_Euler.h') and '{ return 0; }' in read('src/VPML/ML_Euler.h'))
+print('ML_Box L flat:', 'std::vector<Real> L(' in read('src/VPML/ML_Box.cpp'))
+print('Particle_Grid VG flat:', 'std::vector<char> VG(' in read('src/VPML/Particle_Grid.cpp'))
 print('ALL FIXES APPLIED OK')
