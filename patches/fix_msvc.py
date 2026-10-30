@@ -124,6 +124,24 @@ patch('src/VPML/Octtree.h', [
      '    virtual Matrix Get_Corners(const TreeID &TID, const Real &H, const uint &Level = 0) { return Matrix(); }  // Return box corners'),
 ])
 
+# 8f) QFEMModule.cpp: 2D VLA GLdouble x[(int)...size()][3] -> QVector<GLdouble> flat (MSVC C2131/C3863)
+qf = 'src/QFEMModule/QFEMModule.cpp'
+s = read(qf)
+if 'QVector<GLdouble> outerpoints(' not in s:
+    s = s.replace('GLdouble outerpoints[(int)OuterProfiles[0].size()][3];',
+                  'QVector<GLdouble> outerpoints((int)OuterProfiles[0].size()*3, 0.0);', -1)
+    s = s.replace('GLdouble innerpoints[(int)InnerProfiles[0].size()][3];',
+                  'QVector<GLdouble> innerpoints((int)InnerProfiles[0].size()*3, 0.0);', -1)
+    s = re.sub(r'outerpoints\[l\]\[(\d)\]', r'outerpoints[l*3+\1]', s)
+    s = re.sub(r'innerpoints\[l\]\[(\d)\]', r'innerpoints[l*3+\1]', s)
+    s = s.replace('gluTessVertex(tess, outerpoints[l], outerpoints[l]);',
+                  'gluTessVertex(tess, &outerpoints[l*3], &outerpoints[l*3]);')
+    s = s.replace('gluTessVertex(tess, innerpoints[l], innerpoints[l]);',
+                  'gluTessVertex(tess, &innerpoints[l*3], &innerpoints[l*3]);')
+    write(qf, s); print('patched', qf)
+else:
+    print('deja ok ', qf)
+
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -156,4 +174,5 @@ print('Box_Tree.h line174 clean:', all(ord(c) < 128 for c in read('src/VPML/Box_
 print('ML_Euler BCtype const:', 'const char *BCtype;' in read('src/VPML/ML_Euler.h'))
 print('Box_Tree guard renamed:', '#ifndef VPML_BOX_TREE_H' in read('src/VPML/Box_Tree.h') and '#ifndef GRID_H' not in read('src/VPML/Box_Tree.h'))
 print('Octtree C4716 fixed:', 'return Cart_ID(0,0,0); }' in read('src/VPML/Octtree.h') and 'return Matrix(); }' in read('src/VPML/Octtree.h'))
+print('QFEM VLA->QVector:', 'QVector<GLdouble> outerpoints(' in read('src/QFEMModule/QFEMModule.cpp') and 'outerpoints[(int)' not in read('src/QFEMModule/QFEMModule.cpp'))
 print('ALL FIXES APPLIED OK')
