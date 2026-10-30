@@ -142,6 +142,23 @@ if 'QVector<GLdouble> outerpoints(' not in s:
 else:
     print('deja ok ', qf)
 
+# 8g) NewGraph.cpp: VLA QVector<QPointF> points[m_curves.size()] -> QVector<QVector<QPointF>> (MSVC C2131/C3863)
+patch('src/Graph/NewGraph.cpp', [(
+    '\t\tQVector<QPointF> points[m_curves.size()];  // preparation of this array is of vital importance for performance',
+    '\t\tQVector<QVector<QPointF> > points(m_curves.size());  // preparation of this array is of vital importance for performance'
+)])
+
+# 8h) GraphOptionsDialog.cpp: local var named 'interface' clashes with Windows SDK '#define interface struct'
+# (objbase.h pulled in via windows.h). Rename to 'iface'.
+go = 'src/Graph/GraphOptionsDialog.cpp'
+s = read(go)
+if 'TwoDWidgetInterface* iface =' not in s:
+    s = s.replace('    TwoDWidgetInterface* interface = g_mainFrame->getTwoDWidgetInterface();\n    if (interface) interface->update();\n    else g_mainFrame->UpdateView();',
+                  '    TwoDWidgetInterface* iface = g_mainFrame->getTwoDWidgetInterface();\n    if (iface) iface->update();\n    else g_mainFrame->UpdateView();')
+    write(go, s); print('patched', go)
+else:
+    print('deja ok ', go)
+
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -175,4 +192,6 @@ print('ML_Euler BCtype const:', 'const char *BCtype;' in read('src/VPML/ML_Euler
 print('Box_Tree guard renamed:', '#ifndef VPML_BOX_TREE_H' in read('src/VPML/Box_Tree.h') and '#ifndef GRID_H' not in read('src/VPML/Box_Tree.h'))
 print('Octtree C4716 fixed:', 'return Cart_ID(0,0,0); }' in read('src/VPML/Octtree.h') and 'return Matrix(); }' in read('src/VPML/Octtree.h'))
 print('QFEM VLA->QVector:', 'QVector<GLdouble> outerpoints(' in read('src/QFEMModule/QFEMModule.cpp') and 'outerpoints[(int)' not in read('src/QFEMModule/QFEMModule.cpp'))
+print('NewGraph VLA fixed:', 'QVector<QVector<QPointF> > points(m_curves.size());' in read('src/Graph/NewGraph.cpp'))
+print('interface renamed:', 'TwoDWidgetInterface* iface =' in read('src/Graph/GraphOptionsDialog.cpp'))
 print('ALL FIXES APPLIED OK')
