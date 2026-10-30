@@ -1,0 +1,27 @@
+diff --git a/src/StoreAssociatedComboBox.h b/src/StoreAssociatedComboBox.h
+index c4cb129..cd1d7f8 100644
+--- a/src/StoreAssociatedComboBox.h
++++ b/src/StoreAssociatedComboBox.h
+@@ -21,8 +21,8 @@
+ #include <QComboBox>
+ 
+ #include "StoreAssociatedComboBox_include.h"
++#include "StorableObject.h"
+ template <class T> class Store;
+-class StorableObject;
+ 
+ 
+ /**
+diff --git a/src/StructModel/StrModel.cpp b/src/StructModel/StrModel.cpp
+index e728523..b743c76 100644
+--- a/src/StructModel/StrModel.cpp
++++ b/src/StructModel/StrModel.cpp
+@@ -1573,7 +1573,7 @@ void StrModel::UpdateAzimuthalAngle(){
+ 
+     double angle = acos(A.dot(B)/A.VAbs()/B.VAbs());
+ 
+-    if (isnan(angle)) angle = 0;
++    if (std::isnan(angle)) angle = 0;
+ 
+     double orientation = n.dot(A*B);
+     if (orientation < 0 ) angle = 2*PI_ - angle;
