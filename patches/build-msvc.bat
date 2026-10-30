@@ -36,13 +36,16 @@ echo === application des patchs MSVC
 where python >nul 2>nul
 if not errorlevel 1 (
   python patches\fix_msvc.py
+  python patches\fix_msvc_vpml.py
 ) else (
   where py >nul 2>nul
   if not errorlevel 1 (
     py patches\fix_msvc.py
+    py patches\fix_msvc_vpml.py
   ) else (
     if exist "C:\Python314\python.exe" (
       "C:\Python314\python.exe" patches\fix_msvc.py
+      "C:\Python314\python.exe" patches\fix_msvc_vpml.py
     ) else (
       echo ERREUR: python introuvable.
       pause
