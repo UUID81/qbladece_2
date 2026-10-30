@@ -83,7 +83,10 @@ patch('src/Graph/NewGraph.cpp', [(
     'if (std::isnan(double(m_drawingArea.height())) || std::isnan(double(m_drawingArea.width())) || std::isinf(double(m_drawingArea.height())) || std::isinf(double(m_drawingArea.width()))'
 )])
 
-# 8) missing returns
+# 8) VPML Math_Types.h: <tr1/cmath> was removed after VS2013; MSVC has these in <cmath>
+patch('src/VPML/Math_Types.h', [('#include <tr1/cmath>', '#include <cmath>')])
+
+# 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
 s = read(t)
@@ -108,4 +111,5 @@ print('TBEMData accessParameter return:', 'return QVariant();' in read('src/QBEM
 print('TBEMData startSimulation clean:', 'return QVariant();' not in re.search(r'void TBEMData::startSimulation\(\) \{\n(?:[^\n]*\n)*?\}', read('src/QBEM/TBEMData.cpp')).group(0))
 print('isnan(double(h)) counts:', {c: read(c).count('std::isnan(double(h))') for c in ['src/TwoDWidgetInterface.cpp','src/QBEM/BEM.cpp','src/PolarModule/PolarModule.cpp','src/FoilModule/FoilModule.cpp']})
 print('NewGraph double cast:', read('src/Graph/NewGraph.cpp').count('std::isnan(double(m_drawingArea.height()))'))
+print('VPML tr1/cmath replaced:', '<tr1/cmath>' not in read('src/VPML/Math_Types.h') and '#include <cmath>' in read('src/VPML/Math_Types.h'))
 print('ALL FIXES APPLIED OK')
