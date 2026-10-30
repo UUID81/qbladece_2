@@ -1,0 +1,51 @@
+# -------------------------------------------------
+# Project created by David Marten using QtCreator
+# -------------------------------------------------
+
+# switch here to build either for 32bit or 64bit
+CONFIG += build64bit
+
+#the current version numbers
+        DEFINES += version_string=\"\\\"2.0.4_alpha\\\"\"
+win32:  DEFINES += compiled_string=\"\\\"windows\\\"\"
+unix:   DEFINES += compiled_string=\"\\\"unix\\\"\"
+win32:  DEFINES += NOMINMAX WIN32_LEAN_AND_MEAN _CRT_NONSTDC_NO_WARNINGS
+        DEFINES += chrono_string=\"\\\"7.0.0\\\"\"
+
+# specify which Qt modules are needed.
+QT += core gui widgets opengl xml testlib
+
+# set the name of the executable
+TARGET = QBladeCE
+# compiler optimizes for debugging
+QMAKE_CXXFLAGS += -Og
+
+#The template to use for the project. This determines that the output will be an application.
+TEMPLATE = app
+
+# include the resources file into the binary
+RESOURCES += qblade.qrc
+
+# set the icon of the executable application file
+win32:RC_ICONS = images/qblade.ico
+
+# from gcc 4.8.1 on the c++11 implementation is feature complete
+#QMAKE_CXXFLAGS += -std=gnu++11  # usually it would be fine to give c++11 but the OpenCL part apparently needs gnu extensions
+#QMAKE_CXXFLAGS += -fpermissive
+# fixes the "too many sections" issue when compiling debug build under windows
+win32-g++:QMAKE_CXXFLAGS += -Wa,-mbig-ob
+
+#disable all warnings
+QMAKE_CXXFLAGS += -w
+# activate compiler support for openMP
+unix {
+    QMAKE_CXXFLAGS += -fopenmp
+    LIBS += -fopenmp
+}
+win32 {
+    QMAKE_CXXFLAGS += /openmp
+    LIBS += /openmp
+}
+
+# add the proper include path for libraries
+win32: LIBS += -L$$PWD/libraries/libs_windows_64bit
