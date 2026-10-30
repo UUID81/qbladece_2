@@ -22,6 +22,13 @@ if 'NOMINMAX' not in s:
     s = re.sub(r'(unix:   DEFINES \+= compiled_string=.*)\n', r'\1\nwin32:  DEFINES += NOMINMAX _CRT_NONSTDC_NO_WARNINGS\n', s, count=1)
 if 'EIGEN_DONT_VECTORIZE' not in s:
     s = re.sub(r'(win32:  DEFINES \+= NOMINMAX.*)\n', r'\1\nwin32:  DEFINES += EIGEN_DONT_VECTORIZE _USE_MATH_DEFINES\n', s, count=1)
+# GL/gl.h on MSVC needs windows.h included BEFORE it (WINGDIAPI/APIENTRY from wingdi.h).
+# Force-include windows.h in every TU: /FI"windows.h" (NOMINMAX keeps min/max/small/large macros away)
+if '/FI' not in s:
+    s = re.sub(r'(win32 \{\n    QMAKE_CXXFLAGS \+= /openmp)', r'\1\n    QMAKE_CXXFLAGS += /FI"windows.h"', s, count=1)
+    if '/FI' not in s:
+        s = s.replace('win32 {\n    QMAKE_CXXFLAGS += /openmp',
+                      'win32 {\n    QMAKE_CXXFLAGS += /openmp\n    QMAKE_CXXFLAGS += /FI"windows.h"', 1)
 write('qblade.pro', s); print('patched qblade.pro')
 
 # 2) FoilModule small/large
@@ -86,10 +93,12 @@ s = s.replace('void TBEMData::startSimulation() {\n\t// TODO\n    return QVarian
 write(t, s); print('patched', t)
 
 print('=== verification ===')
+import subprocess
 def g(p, pat):
     return [l for l in read(p).splitlines() if pat in l]
 print('NOMINMAX lines:', g('qblade.pro', 'NOMINMAX'))
 print('LEAN_AND_MEAN present:', 'WIN32_LEAN_AND_MEAN' in read('qblade.pro'))
+print('/FI windows.h present:', '/FI"windows.h"' in read('qblade.pro'))
 print('smallVal count:', read('src/FoilModule/FoilModule.cpp').count('smallVal'))
 print('comboBox line200:', [l for l in read('src/StoreAssociatedComboBox.h').splitlines() if 'getCurrentObjectUncasted () const {' in l][-1:])
 print('Blade MAXBLADESTATIONS:', [l.strip() for l in read('src/QBEM/Blade.cpp').splitlines() if 'MAXBLADESTATIONS+1]' in l or 'QVector<double> length' in l])
