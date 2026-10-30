@@ -159,6 +159,16 @@ if 'TwoDWidgetInterface* iface =' not in s:
 else:
     print('deja ok ', go)
 
+# 8i) Chrono ChMatrixEigenExtensions.h: bare 'chrono::' is ambiguous with std::chrono under MSVC
+# (because 'using namespace std' in TUs pulls std::chrono). Qualify with '::chrono::'.
+ce = 'include_headers/Chrono/chrono/core/ChMatrixEigenExtensions.h'
+s = read(ce)
+if '::chrono::ChArchiveOut' not in s:
+    s = re.sub(r'(?<![\w:])chrono::', '::chrono::', s)
+    write(ce, s); print('patched', ce)
+else:
+    print('deja ok ', ce)
+
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -194,4 +204,5 @@ print('Octtree C4716 fixed:', 'return Cart_ID(0,0,0); }' in read('src/VPML/Octtr
 print('QFEM VLA->QVector:', 'QVector<GLdouble> outerpoints(' in read('src/QFEMModule/QFEMModule.cpp') and 'outerpoints[(int)' not in read('src/QFEMModule/QFEMModule.cpp'))
 print('NewGraph VLA fixed:', 'QVector<QVector<QPointF> > points(m_curves.size());' in read('src/Graph/NewGraph.cpp'))
 print('interface renamed:', 'TwoDWidgetInterface* iface =' in read('src/Graph/GraphOptionsDialog.cpp'))
+print('Chrono ::chrono:: qualified:', '::chrono::ChArchiveOut' in read('include_headers/Chrono/chrono/core/ChMatrixEigenExtensions.h'))
 print('ALL FIXES APPLIED OK')
