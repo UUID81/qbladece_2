@@ -282,7 +282,10 @@ SOURCES += src/MainFrame.cpp \
     src/VPML/ML_Box.cpp \
     src/VPML/ML_Euler.cpp \
     src/VPML/Particle_Grid.cpp \
-    src/QTurbine/QTurbineMenu.cpp
+    src/QTurbine/QTurbineMenu.cpp \
+    src/QTurbine/SensorDataManager.cpp \
+    src/QTurbine/SensorCsvDock.cpp \
+    src/QTurbine/SensorBladeMarkers.cpp
 
 HEADERS += src/MainFrame.h \
     src/CurveStyleBox.h \
@@ -480,6 +483,9 @@ HEADERS += src/MainFrame.h \
     src/QTurbine/QTurbineSimulationData.h \
     src/QTurbine/QTurbineResults.h \
     src/QTurbine/QTurbineGlRendering.h \
+    src/QTurbine/SensorDataManager.h \
+    src/QTurbine/SensorCsvDock.h \
+    src/QTurbine/SensorBladeMarkers.h \
     src/QSimulation/QSimulationThread.h \
     src/OpenCLSetup.h \
     src/QSimulation/QVelocityCutPlane.h \

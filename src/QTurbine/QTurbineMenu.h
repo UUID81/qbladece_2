@@ -4,8 +4,8 @@
 
     This program is licensed under the Academic Public License
     (APL) v1.0; You can use, redistribute and/or modify it in
-    non-commercial academic environments under the terms of the
-    APL as published by the QBlade project; See the file 'LICENSE'
+    non-commercial academic environments under the terms of
+    the APL as published by the QBlade project; See the file 'LICENSE'
     for details; Commercial use requires a commercial license
     (contact info@qblade.org).
 
@@ -30,6 +30,7 @@ class QTurbineMenu : public QMenu
 public:
     QTurbineMenu (QMainWindow *parent, QTurbineModule *module);
     QAction *m_showVizOptions, *m_showStructVizOptions, *m_exportTurbineData, *m_exportTurbineDefinition, *m_importTurbineDefinition, *m_exportTurbineInfo;
+    QAction *m_importSensorCsv, *m_clearSensorCsv;
 private:
     QTurbineModule *m_module;
 
@@ -40,6 +41,8 @@ private slots:
     void OnExportTurbineInfo();
     void OnExportTurbineDefinition();
     void OnImportTurbineDefinition();
+    void OnImportSensorCsv();
+    void OnClearSensorCsv();
 
 };
 #endif // QTURBINEMENU_H

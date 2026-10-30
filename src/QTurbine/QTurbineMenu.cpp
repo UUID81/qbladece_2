@@ -4,8 +4,8 @@
 
     This program is licensed under the Academic Public License
     (APL) v1.0; You can use, redistribute and/or modify it in
-    non-commercial academic environments under the terms of the
-    APL as published by the QBlade project; See the file 'LICENSE'
+    non-commercial academic environments under the terms of
+    the APL as published by the QBlade project; See the file 'LICENSE'
     for details; Commercial use requires a commercial license
     (contact info@qblade.org).
 
@@ -32,6 +32,16 @@
 #include "QTurbine.h"
 #include "src/StructModel/StrModel.h"
 
+void QTurbineMenu::OnImportSensorCsv()
+{
+    m_module->OnImportSensorCsv();
+}
+
+void QTurbineMenu::OnClearSensorCsv()
+{
+    m_module->OnClearSensorCsv();
+}
+
 QTurbineMenu::QTurbineMenu(QMainWindow *parent, QTurbineModule *module)
     : QMenu (parent)
 {
@@ -44,6 +54,14 @@ QTurbineMenu::QTurbineMenu(QMainWindow *parent, QTurbineModule *module)
     m_importTurbineDefinition = new QAction(tr("Import Turbine Definition from a Text (.trb) File"), this);
     connect(m_importTurbineDefinition, SIGNAL(triggered()), this, SLOT(OnImportTurbineDefinition()));
     importMenu->addAction(m_importTurbineDefinition);
+
+    m_importSensorCsv = new QAction(tr("Import Sensor CSV Data..."), this);
+    connect(m_importSensorCsv, SIGNAL(triggered()), this, SLOT(OnImportSensorCsv()));
+    importMenu->addAction(m_importSensorCsv);
+
+    m_clearSensorCsv = new QAction(tr("Clear Sensor CSV Data"), this);
+    connect(m_clearSensorCsv, SIGNAL(triggered()), this, SLOT(OnClearSensorCsv()));
+    importMenu->addAction(m_clearSensorCsv);
 
     addSeparator();
 
