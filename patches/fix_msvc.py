@@ -159,15 +159,29 @@ if 'TwoDWidgetInterface* iface =' not in s:
 else:
     print('deja ok ', go)
 
-# 8i) Chrono ChMatrixEigenExtensions.h: bare 'chrono::' is ambiguous with std::chrono under MSVC
-# (because 'using namespace std' in TUs pulls std::chrono). Qualify with '::chrono::'.
-ce = 'include_headers/Chrono/chrono/core/ChMatrixEigenExtensions.h'
-s = read(ce)
-if '::chrono::ChArchiveOut' not in s:
-    s = re.sub(r'(?<![\w:])chrono::', '::chrono::', s)
-    write(ce, s); print('patched', ce)
-else:
-    print('deja ok ', ce)
+# 8i) Chrono + src: bare 'chrono::' is ambiguous with std::chrono under MSVC (C2872).
+# 'using namespace std' in TUs + MSVC <chrono> header => std::chrono visible => ambiguity.
+# Qualify every bare 'chrono::' -> '::chrono::' in include_headers/Chrono and src (lookbehind
+# protects 'std::chrono::' and already-qualified '::chrono::').
+_cpat = re.compile(r'(?<![\w:])chrono::')
+def _qualify(path):
+    s = read(path)
+    n = len(_cpat.findall(s))
+    if n:
+        s2 = _cpat.sub('::chrono::', s)
+        if s2 != s:
+            write(path, s2)
+    return n
+_tot = 0
+for _root, _dirs, _fs in os.walk('include_headers/Chrono'):
+    for _f in _fs:
+        if _f.endswith(('.h', '.hpp', '.cpp', '.inl')):
+            _tot += _qualify(os.path.join(_root, _f))
+for _root, _dirs, _fs in os.walk('src'):
+    for _f in _fs:
+        if _f.endswith(('.h', '.cpp')):
+            _tot += _qualify(os.path.join(_root, _f))
+print('chrono:: qualified total replacements:', _tot)
 
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
@@ -205,4 +219,5 @@ print('QFEM VLA->QVector:', 'QVector<GLdouble> outerpoints(' in read('src/QFEMMo
 print('NewGraph VLA fixed:', 'QVector<QVector<QPointF> > points(m_curves.size());' in read('src/Graph/NewGraph.cpp'))
 print('interface renamed:', 'TwoDWidgetInterface* iface =' in read('src/Graph/GraphOptionsDialog.cpp'))
 print('Chrono ::chrono:: qualified:', '::chrono::ChArchiveOut' in read('include_headers/Chrono/chrono/core/ChMatrixEigenExtensions.h'))
+print('ChArchive.h qualified:', '::chrono::' in read('include_headers/Chrono/chrono/serialization/ChArchive.h'))
 print('ALL FIXES APPLIED OK')
