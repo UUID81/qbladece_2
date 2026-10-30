@@ -86,6 +86,22 @@ patch('src/Graph/NewGraph.cpp', [(
 # 8) VPML Math_Types.h: <tr1/cmath> was removed after VS2013; MSVC has these in <cmath>
 patch('src/VPML/Math_Types.h', [('#include <tr1/cmath>', '#include <cmath>')])
 
+# 8b) VPML Math_Types.h: "#define SinglePrec;" -> trailing ';' in macro body is C2008 on MSVC
+patch('src/VPML/Math_Types.h', [('#define SinglePrec;', '#define SinglePrec')])
+
+# 8c) VPML ML_Euler.h: string literals assigned to 'char *BCtype' -> C2440 with /Zc:strictStrings (default in recent MSVC)
+patch('src/VPML/ML_Euler.h', [('    char *BCtype;', '    const char *BCtype;')])
+
+# 8d) VPML Box_Tree.h uses include guard GRID_H which collides with other headers -> C1004 cascade; rename guard
+bt = 'src/VPML/Box_Tree.h'
+s = read(bt)
+if '#ifndef GRID_H' in s and '#ifndef VPML_BOX_TREE_H' not in s:
+    s = s.replace('#ifndef GRID_H\n#define GRID_H', '#ifndef VPML_BOX_TREE_H\n#define VPML_BOX_TREE_H', 1)
+    s = s.replace('#endif // GRID_H', '#endif // VPML_BOX_TREE_H', 1)
+    write(bt, s); print('patched', bt)
+else:
+    print('deja ok ', bt)
+
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -112,4 +128,7 @@ print('TBEMData startSimulation clean:', 'return QVariant();' not in re.search(r
 print('isnan(double(h)) counts:', {c: read(c).count('std::isnan(double(h))') for c in ['src/TwoDWidgetInterface.cpp','src/QBEM/BEM.cpp','src/PolarModule/PolarModule.cpp','src/FoilModule/FoilModule.cpp']})
 print('NewGraph double cast:', read('src/Graph/NewGraph.cpp').count('std::isnan(double(m_drawingArea.height()))'))
 print('VPML tr1/cmath replaced:', '<tr1/cmath>' not in read('src/VPML/Math_Types.h') and '#include <cmath>' in read('src/VPML/Math_Types.h'))
+print('SinglePrec macro fixed:', '#define SinglePrec;' not in read('src/VPML/Math_Types.h'))
+print('ML_Euler BCtype const:', 'const char *BCtype;' in read('src/VPML/ML_Euler.h'))
+print('Box_Tree guard renamed:', '#ifndef VPML_BOX_TREE_H' in read('src/VPML/Box_Tree.h') and '#ifndef GRID_H' not in read('src/VPML/Box_Tree.h'))
 print('ALL FIXES APPLIED OK')
