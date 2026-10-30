@@ -70,6 +70,12 @@ patch('src/QBEM/Blade.cpp', [
     ('    double fractions[m_NPanel];', '    double fractions[MAXBLADESTATIONS+1];'),
 ])
 
+# 7b) NewGraph.cpp: QRect::width()/height() return int -> cast to double for MSVC fpclassify
+patch('src/Graph/NewGraph.cpp', [(
+    'if (std::isnan(m_drawingArea.height()) || std::isnan(m_drawingArea.width()) || std::isinf(m_drawingArea.height()) || std::isinf(m_drawingArea.width())',
+    'if (std::isnan(double(m_drawingArea.height())) || std::isnan(double(m_drawingArea.width())) || std::isinf(double(m_drawingArea.height())) || std::isinf(double(m_drawingArea.width()))'
+)])
+
 # 8) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -92,4 +98,5 @@ print('CBEMData return NULL:', [l.strip() for l in read('src/QBEM/CBEMData.cpp')
 print('TBEMData accessParameter return:', 'return QVariant();' in read('src/QBEM/TBEMData.cpp'))
 print('TBEMData startSimulation clean:', 'return QVariant();' not in re.search(r'void TBEMData::startSimulation\(\) \{\n(?:[^\n]*\n)*?\}', read('src/QBEM/TBEMData.cpp')).group(0))
 print('isnan(double(h)) counts:', {c: read(c).count('std::isnan(double(h))') for c in ['src/TwoDWidgetInterface.cpp','src/QBEM/BEM.cpp','src/PolarModule/PolarModule.cpp','src/FoilModule/FoilModule.cpp']})
+print('NewGraph double cast:', read('src/Graph/NewGraph.cpp').count('std::isnan(double(m_drawingArea.height()))'))
 print('ALL FIXES APPLIED OK')
