@@ -1,0 +1,26 @@
+diff --git a/src/FoilModule/FoilModule.cpp b/src/FoilModule/FoilModule.cpp
+index bd180de..9dc7392 100644
+--- a/src/FoilModule/FoilModule.cpp
++++ b/src/FoilModule/FoilModule.cpp
+@@ -1416,15 +1416,15 @@ void FoilModule::onTransformFoil()
+ 
+ 
+     int LE, TE;                              // Leading edge(LE) and Trailing edge(TE) research over the airfoil points
+-    double small = 1000000;
+-    double large = -100000;
++    double smallVal = 1000000;
++    double largeVal = -100000;
+     for(int j=0; j<pNewFoil->n; j++){
+-        if (pNewFoil->x[j] < small){
+-            small = pNewFoil->x[j];
++        if (pNewFoil->x[j] < smallVal){
++            smallVal = pNewFoil->x[j];
+             LE = j;
+         }
+-        if (pNewFoil->x[j] > large){
+-            large = pNewFoil->x[j];
++        if (pNewFoil->x[j] > largeVal){
++            largeVal = pNewFoil->x[j];
+             TE = j;
+         }
+     }
