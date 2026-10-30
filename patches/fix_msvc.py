@@ -89,6 +89,18 @@ patch('src/VPML/Math_Types.h', [('#include <tr1/cmath>', '#include <cmath>')])
 # 8b) VPML Math_Types.h: "#define SinglePrec;" -> trailing ';' in macro body is C2008 on MSVC
 patch('src/VPML/Math_Types.h', [('#define SinglePrec;', '#define SinglePrec')])
 
+# 8b2) VPML Math_Types.h: _Pragma inside macro body is unreliable on MSVC 14.29
+# (produces C2018 unknown char at use sites). Define OpenMPfor to nothing under _MSC_VER
+# (serial fallback, still correct); keep _Pragma on GCC/Clang.
+mt = 'src/VPML/Math_Types.h'
+s = read(mt)
+if '#define OpenMPfor _Pragma("omp parallel for")' in s and '_MSC_VER' not in s:
+    s = s.replace('#define OpenMPfor _Pragma("omp parallel for")',
+                  '#ifdef _MSC_VER\n#define OpenMPfor\n#else\n#define OpenMPfor _Pragma("omp parallel for")\n#endif', 1)
+    write(mt, s); print('patched', mt)
+else:
+    print('deja ok ', mt)
+
 # 8c) VPML ML_Euler.h: string literals assigned to 'char *BCtype' -> C2440 with /Zc:strictStrings (default in recent MSVC)
 patch('src/VPML/ML_Euler.h', [('    char *BCtype;', '    const char *BCtype;')])
 
@@ -129,6 +141,8 @@ print('isnan(double(h)) counts:', {c: read(c).count('std::isnan(double(h))') for
 print('NewGraph double cast:', read('src/Graph/NewGraph.cpp').count('std::isnan(double(m_drawingArea.height()))'))
 print('VPML tr1/cmath replaced:', '<tr1/cmath>' not in read('src/VPML/Math_Types.h') and '#include <cmath>' in read('src/VPML/Math_Types.h'))
 print('SinglePrec macro fixed:', '#define SinglePrec;' not in read('src/VPML/Math_Types.h'))
+print('OpenMPfor MSVC-guarded:', '#ifdef _MSC_VER' in read('src/VPML/Math_Types.h'))
+print('Box_Tree.h line174 clean:', all(ord(c) < 128 for c in read('src/VPML/Box_Tree.h').splitlines()[173]))
 print('ML_Euler BCtype const:', 'const char *BCtype;' in read('src/VPML/ML_Euler.h'))
 print('Box_Tree guard renamed:', '#ifndef VPML_BOX_TREE_H' in read('src/VPML/Box_Tree.h') and '#ifndef GRID_H' not in read('src/VPML/Box_Tree.h'))
 print('ALL FIXES APPLIED OK')
