@@ -114,6 +114,16 @@ if '#ifndef GRID_H' in s and '#ifndef VPML_BOX_TREE_H' not in s:
 else:
     print('deja ok ', bt)
 
+# 8e) Octtree.h: base Tree_Node virtuals with empty body {} but non-void return -> C4716 on MSVC
+patch('src/VPML/Octtree.h', [
+    ('    virtual Cart_ID Get_CID(const Vector3 &Pos, const Real &H, const uint &Level=0) {}',
+     '    virtual Cart_ID Get_CID(const Vector3 &Pos, const Real &H, const uint &Level=0) { return Cart_ID(0,0,0); }'),
+    ('                                const Vector3 &Centre = Vector3(0,0,0)){}   // Initial Centre is zero',
+     '                                const Vector3 &Centre = Vector3(0,0,0)){ return Vector3(0,0,0); }   // Initial Centre is zero'),
+    ('    virtual Matrix Get_Corners(const TreeID &TID, const Real &H, const uint &Level = 0) {}  // Return box corners',
+     '    virtual Matrix Get_Corners(const TreeID &TID, const Real &H, const uint &Level = 0) { return Matrix(); }  // Return box corners'),
+])
+
 # 9) missing returns
 patch('src/QBEM/CBEMData.cpp', [("//\treturn curve;\n}\n", "//\treturn curve;\n    return NULL;\n}\n")])
 t = 'src/QBEM/TBEMData.cpp'
@@ -145,4 +155,5 @@ print('OpenMPfor MSVC-guarded:', '#ifdef _MSC_VER' in read('src/VPML/Math_Types.
 print('Box_Tree.h line174 clean:', all(ord(c) < 128 for c in read('src/VPML/Box_Tree.h').splitlines()[173]))
 print('ML_Euler BCtype const:', 'const char *BCtype;' in read('src/VPML/ML_Euler.h'))
 print('Box_Tree guard renamed:', '#ifndef VPML_BOX_TREE_H' in read('src/VPML/Box_Tree.h') and '#ifndef GRID_H' not in read('src/VPML/Box_Tree.h'))
+print('Octtree C4716 fixed:', 'return Cart_ID(0,0,0); }' in read('src/VPML/Octtree.h') and 'return Matrix(); }' in read('src/VPML/Octtree.h'))
 print('ALL FIXES APPLIED OK')
