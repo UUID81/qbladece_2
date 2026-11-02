@@ -32,6 +32,32 @@ if '/FI' not in s:
 # link.exe does not understand '/openmp' (LNK1181 '\openmp.obj'); MSVC OpenMP runtime lib is vcomp.lib
 if 'vcomp.lib' not in s:
     s = s.replace('    LIBS += /openmp\n', '    LIBS += vcomp.lib\n', 1)
+# LNK1181 'QGLViewer2.lib' etc.: libraries/libs_windows_64bit ships ONLY DLLs (no import
+# .lib, even upstream). Modern MSVC link.exe accepts DLL files directly as link inputs,
+# so point the win32 LIBS entries at the DLL files themselves. opengl32/glu32 keep their
+# -l form (their .lib come from the Windows SDK lib path set by vcvarsall).
+if 'libs_windows_64bit/QGLViewer2.dll' not in s:
+    s = s.replace('win32: LIBS += -lQGLViewer2',
+                  'win32: LIBS += $$PWD/libraries/libs_windows_64bit/QGLViewer2.dll', 1)
+    s = re.sub(r'(?m)^\s*LIBS \+= -lOpenCL$',
+               lambda m: 'win32: LIBS += $$PWD/libraries/libs_windows_64bit/OpenCL.dll\nunix:  LIBS += -lOpenCL',
+               s, count=1)
+    s = s.replace('win32: LIBS += -llibChronoEngine',
+                  'win32: LIBS += $$PWD/libraries/libs_windows_64bit/libChronoEngine.dll', 1)
+    s = s.replace('win32: LIBS += -llibclblast',
+                  'win32: LIBS += $$PWD/libraries/libs_windows_64bit/libclblast.dll', 1)
+# copy the bundled runtime DLLs next to the exe (same copyTarget/PRE_TARGETDEPS mechanism
+# as the data/ directories below) so QBladeCE.exe can start without manual copying
+if 'copydlls' not in s:
+    for line in s.split('\n'):
+        if line.startswith('win32:copybinaries.commands'):
+            dl = line.replace('copybinaries', 'copydlls')
+            dl = re.sub(r'shell_path\(\$\$PWD[^)]*\)',
+                        lambda m: 'shell_path($$PWD\\\\libraries\\\\libs_windows_64bit\\\\*.dll)', dl, count=1)
+            dl = re.sub(r'shell_path\(\$\$OUT_PWD[^)]*\)',
+                        lambda m: 'shell_path($$OUT_PWD\\\\$$VARIANT\\\\)', dl, count=1)
+            s = s.replace(line, line + '\n' + dl + '\ncopyTarget.depends += copydlls\nQMAKE_EXTRA_TARGETS += copydlls', 1)
+            break
 write('qblade.pro', s); print('patched qblade.pro')
 
 # 2) FoilModule small/large
@@ -203,6 +229,11 @@ print('NOMINMAX lines:', g('qblade.pro', 'NOMINMAX'))
 print('LEAN_AND_MEAN present:', 'WIN32_LEAN_AND_MEAN' in read('qblade.pro'))
 print('/FI windows.h present:', '/FI"windows.h"' in read('qblade.pro'))
 print('vcomp.lib in LIBS:', 'vcomp.lib' in read('qblade.pro') and 'LIBS += /openmp' not in read('qblade.pro'))
+_q = read('qblade.pro')
+print('DLL direct link win32:', 'libs_windows_64bit/QGLViewer2.dll' in _q, '| -lQGLViewer2 gone:', '-lQGLViewer2' not in _q,
+      '| OpenCL dll+unix kept:', 'libs_windows_64bit/OpenCL.dll' in _q and 'unix:  LIBS += -lOpenCL' in _q,
+      '| Chrono dll:', 'libs_windows_64bit/libChronoEngine.dll' in _q, '| clblast dll:', 'libs_windows_64bit/libclblast.dll' in _q)
+print('copydlls target:', 'copydlls.commands' in _q and 'copyTarget.depends += copydlls' in _q)
 print('smallVal count:', read('src/FoilModule/FoilModule.cpp').count('smallVal'))
 print('comboBox line200:', [l for l in read('src/StoreAssociatedComboBox.h').splitlines() if 'getCurrentObjectUncasted () const {' in l][-1:])
 print('Blade MAXBLADESTATIONS:', [l.strip() for l in read('src/QBEM/Blade.cpp').splitlines() if 'MAXBLADESTATIONS+1]' in l or 'QVector<double> length' in l])

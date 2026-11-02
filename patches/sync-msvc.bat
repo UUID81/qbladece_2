@@ -39,5 +39,8 @@ findstr /c:"return Matrix(); }" src\VPML\ML_Euler.h >nul && echo OK ML_Euler.h r
 findstr /c:"std::vector<Real> L(" src\VPML\ML_Box.cpp >nul && echo OK ML_Box.cpp L || echo MANQUANT ML_Box.cpp
 findstr /c:"std::vector<char> VG(" src\VPML\Particle_Grid.cpp >nul && echo OK Particle_Grid.cpp VG || echo MANQUANT Particle_Grid.cpp
 findstr /c:"/FI" qblade.pro >nul && echo OK qblade.pro /FI || echo MANQUANT qblade.pro /FI
+findstr /c:"vcomp.lib" qblade.pro >nul && echo OK qblade.pro vcomp || echo MANQUANT vcomp
+findstr /c:"libs_windows_64bit/QGLViewer2.dll" qblade.pro >nul && echo OK qblade.pro DLL-direct || echo MANQUANT DLL-direct
+findstr /c:"copydlls.commands" qblade.pro >nul && echo OK qblade.pro copydlls || echo MANQUANT copydlls
 echo === sync termine. Tu peux maintenant lancer compile-msvc.bat
 pause
