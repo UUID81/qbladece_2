@@ -29,6 +29,9 @@ if '/FI' not in s:
     if '/FI' not in s:
         s = s.replace('win32 {\n    QMAKE_CXXFLAGS += /openmp',
                       'win32 {\n    QMAKE_CXXFLAGS += /openmp\n    QMAKE_CXXFLAGS += /FI"windows.h"', 1)
+# link.exe does not understand '/openmp' (LNK1181 '\openmp.obj'); MSVC OpenMP runtime lib is vcomp.lib
+if 'vcomp.lib' not in s:
+    s = s.replace('    LIBS += /openmp\n', '    LIBS += vcomp.lib\n', 1)
 write('qblade.pro', s); print('patched qblade.pro')
 
 # 2) FoilModule small/large
@@ -199,6 +202,7 @@ def g(p, pat):
 print('NOMINMAX lines:', g('qblade.pro', 'NOMINMAX'))
 print('LEAN_AND_MEAN present:', 'WIN32_LEAN_AND_MEAN' in read('qblade.pro'))
 print('/FI windows.h present:', '/FI"windows.h"' in read('qblade.pro'))
+print('vcomp.lib in LIBS:', 'vcomp.lib' in read('qblade.pro') and 'LIBS += /openmp' not in read('qblade.pro'))
 print('smallVal count:', read('src/FoilModule/FoilModule.cpp').count('smallVal'))
 print('comboBox line200:', [l for l in read('src/StoreAssociatedComboBox.h').splitlines() if 'getCurrentObjectUncasted () const {' in l][-1:])
 print('Blade MAXBLADESTATIONS:', [l.strip() for l in read('src/QBEM/Blade.cpp').splitlines() if 'MAXBLADESTATIONS+1]' in l or 'QVector<double> length' in l])
