@@ -32,20 +32,19 @@ if '/FI' not in s:
 # link.exe does not understand '/openmp' (LNK1181 '\openmp.obj'); MSVC OpenMP runtime lib is vcomp.lib
 if 'vcomp.lib' not in s:
     s = s.replace('    LIBS += /openmp\n', '    LIBS += vcomp.lib\n', 1)
-# LNK1181 'QGLViewer2.lib' etc.: libraries/libs_windows_64bit ships ONLY DLLs (no import
-# .lib, even upstream). Modern MSVC link.exe accepts DLL files directly as link inputs,
-# so point the win32 LIBS entries at the DLL files themselves. opengl32/glu32 keep their
-# -l form (their .lib come from the Windows SDK lib path set by vcvarsall).
-if 'libs_windows_64bit/QGLViewer2.dll' not in s:
-    s = s.replace('win32: LIBS += -lQGLViewer2',
-                  'win32: LIBS += $$PWD/libraries/libs_windows_64bit/QGLViewer2.dll', 1)
-    s = re.sub(r'(?m)^\s*LIBS \+= -lOpenCL$',
-               lambda m: 'win32: LIBS += $$PWD/libraries/libs_windows_64bit/OpenCL.dll\nunix:  LIBS += -lOpenCL',
-               s, count=1)
-    s = s.replace('win32: LIBS += -llibChronoEngine',
-                  'win32: LIBS += $$PWD/libraries/libs_windows_64bit/libChronoEngine.dll', 1)
-    s = s.replace('win32: LIBS += -llibclblast',
-                  'win32: LIBS += $$PWD/libraries/libs_windows_64bit/libclblast.dll', 1)
+# NOTE: MSVC link.exe CANNOT take DLLs as inputs (LNK1107) and libraries/libs_windows_64bit
+# ships only MinGW-built DLLs (Itanium-mangled C++ exports) with no import .lib - so an
+# MSVC build can never link them. The supported Windows build is MinGW (ld links the DLLs
+# directly through -l). If an older run of this script left DLL paths in LIBS, revert them.
+if 'libs_windows_64bit/QGLViewer2.dll' in s:
+    s = s.replace('win32: LIBS += $$PWD/libraries/libs_windows_64bit/QGLViewer2.dll',
+                  'win32: LIBS += -lQGLViewer2', 1)
+    s = s.replace('win32: LIBS += $$PWD/libraries/libs_windows_64bit/OpenCL.dll\nunix:  LIBS += -lOpenCL',
+                  '       LIBS += -lOpenCL', 1)
+    s = s.replace('win32: LIBS += $$PWD/libraries/libs_windows_64bit/libChronoEngine.dll',
+                  'win32: LIBS += -llibChronoEngine', 1)
+    s = s.replace('win32: LIBS += $$PWD/libraries/libs_windows_64bit/libclblast.dll',
+                  'win32: LIBS += -llibclblast', 1)
 # copy the bundled runtime DLLs next to the exe (same copyTarget/PRE_TARGETDEPS mechanism
 # as the data/ directories below) so QBladeCE.exe can start without manual copying
 if 'copydlls' not in s:
@@ -230,9 +229,8 @@ print('LEAN_AND_MEAN present:', 'WIN32_LEAN_AND_MEAN' in read('qblade.pro'))
 print('/FI windows.h present:', '/FI"windows.h"' in read('qblade.pro'))
 print('vcomp.lib in LIBS:', 'vcomp.lib' in read('qblade.pro') and 'LIBS += /openmp' not in read('qblade.pro'))
 _q = read('qblade.pro')
-print('DLL direct link win32:', 'libs_windows_64bit/QGLViewer2.dll' in _q, '| -lQGLViewer2 gone:', '-lQGLViewer2' not in _q,
-      '| OpenCL dll+unix kept:', 'libs_windows_64bit/OpenCL.dll' in _q and 'unix:  LIBS += -lOpenCL' in _q,
-      '| Chrono dll:', 'libs_windows_64bit/libChronoEngine.dll' in _q, '| clblast dll:', 'libs_windows_64bit/libclblast.dll' in _q)
+print('LIBS -l MinGW form (no DLL paths):', '-lQGLViewer2' in _q and 'libs_windows_64bit/QGLViewer2.dll' not in _q
+      and '-llibChronoEngine' in _q and '-llibclblast' in _q and 'LIBS += -lOpenCL' in _q)
 print('copydlls target:', 'copydlls.commands' in _q and 'copyTarget.depends += copydlls' in _q)
 print('smallVal count:', read('src/FoilModule/FoilModule.cpp').count('smallVal'))
 print('comboBox line200:', [l for l in read('src/StoreAssociatedComboBox.h').splitlines() if 'getCurrentObjectUncasted () const {' in l][-1:])

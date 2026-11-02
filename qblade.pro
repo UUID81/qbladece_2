@@ -32,19 +32,13 @@ win32:RC_ICONS = images/qblade.ico
 #QMAKE_CXXFLAGS += -std=gnu++11  # usually it would be fine to give c++11 but the OpenCL part apparently needs gnu extensions
 #QMAKE_CXXFLAGS += -fpermissive
 # fixes the "too many sections" issue when compiling debug build under windows
-win32-g++:QMAKE_CXXFLAGS += -Wa,-mbig-ob
+win32:QMAKE_CXXFLAGS += -Wa,-mbig-ob
 
 #disable all warnings
 QMAKE_CXXFLAGS += -w
 # activate compiler support for openMP
-unix {
-    QMAKE_CXXFLAGS += -fopenmp
-    LIBS += -fopenmp
-}
-win32 {
-    QMAKE_CXXFLAGS += /openmp
-    LIBS += /openmp
-}
+QMAKE_CXXFLAGS += -fopenmp
+LIBS += -fopenmp
 
 # add the proper include path for libraries
 win32: LIBS += -L$$PWD/libraries/libs_windows_64bit
@@ -523,6 +517,9 @@ QMAKE_EXTRA_TARGETS += copyTarget
 PRE_TARGETDEPS += copyTarget
 
 win32:copybinaries.commands = $(COPY_DIR) \"$$shell_path($$PWD\\data\\Binaries\\win)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\Binaries)\"
+win32:copydlls.commands = $(COPY_DIR) \"$$shell_path($$PWD\\libraries\\libs_windows_64bit\\*.dll)\" \"$$shell_path($$OUT_PWD\\$$VARIANT\\)\"
+copyTarget.depends += copydlls
+QMAKE_EXTRA_TARGETS += copydlls
 unix:copybinaries.commands = $(COPY_DIR) \"$$shell_path($$PWD\\data\\Binaries\\unix)\" \"$$shell_path($$OUT_PWD\\Binaries\\)\"
 copyTarget.depends += copybinaries
 QMAKE_EXTRA_TARGETS += copybinaries

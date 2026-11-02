@@ -68,3 +68,41 @@ make -j$(nproc)
 2. `Turbine Definition > Import Data > Import Sensor CSV Data...` -> choisir un CSV.
 3. Le dock `Sensor CSV Data` apparait en bas : slider ou Play pour animer.
 4. Marqueurs vert/jaune/rouge sur les pales selon `MagZ_category`.
+
+## Compilation sous Windows (MinGW - chemin supporte)
+
+Les DLL fournies dans `libraries/libs_windows_64bit/` (QGLViewer2, libChronoEngine,
+libclblast, OpenCL, ...) sont **compilees avec MinGW** : un link MSVC ne peut pas les
+utiliser (mangling C++ incompatible, et aucun `.lib` n'est fourni). Le build Windows
+supporte est donc **Qt 5.15.2 + MinGW 8.1.0 64 bit** (comme dans `CompileInfo.txt` upstream).
+
+Installation du kit MinGW de Qt (si pas deja fait) :
+
+```cmd
+C:\Python314\python.exe -m pip install aqtinstall
+C:\Python314\python.exe -m aqt install-qt windows desktop 5.15.2 mingw81_64 -O C:\Qt
+```
+
+puis, dans une fenetre **cmd.exe** (PAS Git Bash) :
+
+```cmd
+cd C:\Users\MorganCORLAY\qblade-work\qbladece_2
+patches\sync-mingw.bat        (git fetch + reset --hard, aucun patch MSVC)
+patches\compile-mingw.bat     (qmake mingw81_64 + mingw32-make -j + windeployqt)
+```
+
+L'executable est `release\QBladeCE.exe`. Le build copie automatiquement dans `release\` :
+- les DLL du dossier `libraries/libs_windows_64bit/` (cible qmake `copydlls`),
+- les DLL de `data/Binaries/win`, `data/ControllerFiles/win`, ... (cibles upstream),
+- les DLL Qt via `windeployqt` + le runtime MinGW (libgcc/libstdc++/winpthread).
+
+Pour nettoyer : `patches\compile-mingw.bat clean`
+
+## Utilisation
+
+1. Lancer `release\QBladeCE.exe`, ouvrir une turbine.
+2. Menu `Turbine Definition > Import Data > Import Sensor CSV Data...`, choisir le CSV
+   (exemple fourni : `samples/sensor/example_sensors.csv`).
+3. Le dock `Sensor CSV Data` en bas permet de parcourir le temps (slider / Play) :
+   les capteurs apparaissent sur les pales A/B/C aux rayons indiquees, colores selon
+   `MagZ_category` (L=vert, M=jaune, H=rouge).
